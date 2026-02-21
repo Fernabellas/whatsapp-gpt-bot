@@ -9,6 +9,7 @@ const WHATSAPP_NUMBER_ID = process.env.WHATSAPP_NUMBER_ID;
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
+// Endpoint para recibir mensajes
 app.post('/webhook', async (req, res) => {
   try {
     console.log('Mensaje entrante:', req.body);
@@ -21,8 +22,9 @@ app.post('/webhook', async (req, res) => {
     const from = message.from;
     const text = message.text?.body || '';
 
-    console.log(Mensaje de ${from}: ${text});
+    console.log(`Mensaje de ${from}: ${text}`);
 
+    // Llamada a OpenAI
     const openaiRes = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
@@ -31,7 +33,7 @@ app.post('/webhook', async (req, res) => {
       },
       {
         headers: {
-          'Authorization': Bearer ${OPENAI_API_KEY},
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
           'Content-Type': 'application/json'
         }
       }
@@ -40,8 +42,9 @@ app.post('/webhook', async (req, res) => {
     const reply = openaiRes.data.choices[0].message.content;
     console.log('Respuesta generada:', reply);
 
+    // Enviar respuesta a WhatsApp
     await axios.post(
-      https://graph.facebook.com/v22.0/${WHATSAPP_NUMBER_ID}/messages,
+      `https://graph.facebook.com/v22.0/${WHATSAPP_NUMBER_ID}/messages`,
       {
         messaging_product: 'whatsapp',
         to: from,
@@ -50,7 +53,7 @@ app.post('/webhook', async (req, res) => {
       },
       {
         headers: {
-          'Authorization': Bearer ${WHATSAPP_TOKEN},
+          'Authorization': `Bearer ${WHATSAPP_TOKEN}`,
           'Content-Type': 'application/json'
         }
       }
@@ -64,6 +67,7 @@ app.post('/webhook', async (req, res) => {
   }
 });
 
+// Verificación del webhook
 app.get('/webhook', (req, res) => {
   const verify_token = process.env.WHATSAPP_VERIFY_TOKEN;
   const mode = req.query['hub.mode'];
@@ -73,17 +77,14 @@ app.get('/webhook', (req, res) => {
   if (mode && token) {
     if (mode === 'subscribe' && token === verify_token) {
       console.log('WEBHOOK_VERIFIED');
-      return res.status(200).send(challenge);
+      res.status(200).send(challenge);
+    } else {
+      res.sendStatus(403);
     }
-    return res.sendStatus(403);
   }
-});
-
-app.get('/', (req, res) => {
-  res.send('Servidor funcionando correctamente');
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(Servidor corriendo en el puerto ${PORT});
+  console.log(`Servidor corriendo en el puerto ${PORT}`);
 });
